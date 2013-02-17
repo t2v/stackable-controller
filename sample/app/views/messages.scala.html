@@ -1,0 +1,11 @@
+@(messages: Seq[Message])(account: Account)
+
+@main("Messages") {
+
+  <ul>
+  @messages.map { message =>
+     <li>@{message.body}</li>
+  }
+  </ul>
+
+}
