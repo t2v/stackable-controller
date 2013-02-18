@@ -34,10 +34,11 @@ def AuthAction(authority: Authority)(f: User => DBSession => Request[AnyContent]
   }
 }
 
+type Template = Html => Html
 def PjaxAction(f: Template => User => DBSession => Request[AnyContent] => Result): Action[AnyContent] = {
   AuthAction { user => session => request =>
-    if (request.headers.contains("X-Pjax"))
-    f(session)(request)
+    val template = if (req.headers.contains("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
+    f(template)(user)(session)(request)
   }
 }
 ```
@@ -56,8 +57,8 @@ We have got to create another PjaxAction.
 ```scala
 def PjaxAction(f: Template => Request[AnyContent] => Result): Action[AnyContent] = {
   TxAction { session => request =>
-    if (request.headers.contains("X-Pjax"))
-    f(session)(request)
+    val template = if (req.headers.contains("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
+    f(template)(session)(request)
   }
 }
 ```
