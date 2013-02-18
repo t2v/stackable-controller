@@ -1,8 +1,9 @@
 package jp.t2v.lab.play2.stackc
 
 import play.api.mvc._
-import concurrent.ExecutionContext
-import util.{Try, Failure, Success}
+import scala.concurrent.ExecutionContext
+import scala.util.{Try, Failure, Success}
+import java.util.concurrent.ConcurrentHashMap
 
 trait StackableController {
     self: Controller =>
@@ -10,7 +11,7 @@ trait StackableController {
   implicit def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
   final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey, Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = Action(p) { req =>
-    val request = RequestWithAttributes(req, params.toMap)
+    val request = RequestWithAttributes(req, new ConcurrentHashMap[RequestAttributeKey, Any]())
     try {
       cleanup(request, proceed(request)(f))
     } catch {
@@ -40,14 +41,18 @@ trait StackableController {
 
 trait RequestAttributeKey
 
-case class RequestWithAttributes[A](underlying: Request[A], attributes: Map[RequestAttributeKey, Any]) extends WrappedRequest[A](underlying) {
+case class RequestWithAttributes[A](underlying: Request[A], attributes: java.util.Map[RequestAttributeKey, Any]) extends WrappedRequest[A](underlying) {
 
   def getAs[B](key: RequestAttributeKey): Option[B] = {
-    attributes.get(key).flatMap { item =>
+    Option(attributes.get(key)).flatMap { item =>
       Try(item.asInstanceOf[B]).toOption
     }
   }
 
-  def set(key: RequestAttributeKey, value: Any): RequestWithAttributes[A] = RequestWithAttributes[A](underlying, attributes + (key -> value))
+  /** side effect! */
+  def set(key: RequestAttributeKey, value: Any): RequestWithAttributes[A] = {
+    attributes.put(key, value)
+    this
+  }
 
 }
