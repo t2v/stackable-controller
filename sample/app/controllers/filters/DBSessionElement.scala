@@ -1,8 +1,8 @@
-package controllers.stacks
+package controllers.filters
 
 import play.api.mvc.{Result, Controller}
 import scalikejdbc._
-import jp.t2v.lab.play2.stackc.{ScopedRequest, RequestAttributeKey, ScopedRequestController}
+import jp.t2v.lab.play2.reqscope.{ScopedRequest, RequestAttributeKey, ScopedRequestController}
 
 trait DBSessionElement extends ScopedRequestController {
     self: Controller =>

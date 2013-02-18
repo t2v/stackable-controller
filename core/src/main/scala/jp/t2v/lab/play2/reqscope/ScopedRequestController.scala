@@ -1,4 +1,4 @@
-package jp.t2v.lab.play2.stackc
+package jp.t2v.lab.play2.reqscope
 
 import play.api.mvc._
 import concurrent.ExecutionContext
