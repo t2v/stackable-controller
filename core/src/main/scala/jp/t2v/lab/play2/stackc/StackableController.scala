@@ -1,52 +1,59 @@
 package jp.t2v.lab.play2.stackc
 
 import play.api.mvc._
-import java.util.UUID
 import concurrent.ExecutionContext
 import util.{Failure, Success}
+import reflect.ClassTag
+import org.apache.commons.lang3.reflect.TypeUtils
 
 trait StackableController {
    self: Controller =>
 
   implicit def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
-  def txAction[A](p: BodyParser[A])(f: Xid => Request[A] => Result): Action[A] = Action(p) { req =>
-    val xid = generateXid
+  def txAction[A](p: BodyParser[A], params: (RequestAttributeKey, Any)*)(f: ScopedRequest[A] => Result): Action[A] = Action(p) { req =>
+    val request = ScopedRequest(req, params.toMap)
     try {
-      doCleanup(xid)(proceed(xid, req)(f))
+      doCleanup(request, proceed(request)(f))
     } catch {
-      case e: Exception => cleanupOnFailed(xid, e); throw e
+      case e: Exception => cleanupOnFailed(request, e); throw e
     }
   }
 
-  def txAction(f: Xid => Request[AnyContent] => Result): Action[AnyContent] = txAction(parse.anyContent)(f)
+  def txAction(params: (RequestAttributeKey, Any)*)(f: ScopedRequest[AnyContent] => Result): Action[AnyContent] = txAction(parse.anyContent, params: _*)(f)
 
-  def proceed[A](xid: Xid, req: Request[A])(f: Xid => Request[A] => Result): Result = f(xid)(req)
+  def proceed[A](request: ScopedRequest[A])(f: ScopedRequest[A] => Result): Result = f(request)
 
-  def cleanupOnSucceeded(xid: Xid): Unit = ()
+  def cleanupOnSucceeded[A](request: ScopedRequest[A]): Unit = ()
 
-  def cleanupOnFailed(xid: Xid, e: Exception): Unit = ()
+  def cleanupOnFailed[A](request: ScopedRequest[A], e: Exception): Unit = ()
 
-  def cleanupFinally(xid: Xid): Unit = ()
-
-  private def doCleanup(xid: Xid)(result: Result): Result = result match {
+  private def doCleanup[A](request: ScopedRequest[A], result: Result): Result = result match {
     case p: PlainResult => {
-      cleanupOnSucceeded(xid)
-      cleanupFinally(xid)
+      cleanupOnSucceeded(request)
       p
     }
     case AsyncResult(f) => AsyncResult {
       f andThen {
-        case Success(r) => doCleanup(xid)(r)
+        case Success(r) => doCleanup(request, r)
         case Failure(e: Exception) =>
-          cleanupOnFailed(xid, e)
-          cleanupFinally(xid)
+          cleanupOnFailed(request, e)
       }
     }
   }
 
-  private def generateXid: Xid = Xid(UUID.randomUUID().toString)
-
 }
 
-case class Xid(token: String)
+trait RequestAttributeKey
+
+case class ScopedRequest[A](underlying: Request[A], attributes: Map[RequestAttributeKey, Any]) extends WrappedRequest[A](underlying) {
+
+  def getAs[B](key: RequestAttributeKey)(implicit ct: ClassTag[B]): Option[B] = {
+    attributes.get(key).flatMap { item =>
+      if (TypeUtils.isInstance(item, ct.runtimeClass)) Some(item.asInstanceOf[B]) else None
+    }
+  }
+
+  def set(key: RequestAttributeKey, value: Any): ScopedRequest[A] = ScopedRequest[A](underlying, attributes + (key -> value))
+
+}

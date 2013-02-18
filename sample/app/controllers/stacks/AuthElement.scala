@@ -1,28 +1,23 @@
 package controllers.stacks
 
-import play.api.mvc.{Result, Request, Controller}
-import java.util.concurrent.ConcurrentHashMap
-import models.Account
-import jp.t2v.lab.play2.stackc.{StackableController, Xid}
+import play.api.mvc.{Result, Controller}
+import jp.t2v.lab.play2.stackc.{RequestAttributeKey, ScopedRequest, StackableController}
+import controllers.AuthConfigImpl
+import jp.t2v.lab.play20.auth.Auth
 
-trait AuthElement extends StackableController {
-    self: Controller =>
+trait AuthElement extends StackableController with AuthConfigImpl {
+    self: Controller with Auth =>
 
-  private val users: java.util.Map[Xid, Account] = new ConcurrentHashMap[Xid, Account]()
+  case object AuthKey extends RequestAttributeKey
+  case object AuthorityKey extends RequestAttributeKey
 
-  abstract override def proceed[A](xid: Xid, req: Request[A])(f: Xid => Request[A] => Result): Result = {
-    users.put(xid, null)
-    super.proceed(xid, req)(f)
+  abstract override def proceed[A](req: ScopedRequest[A])(f: ScopedRequest[A] => Result): Result = {
+    (for {
+      authority <- req.getAs[Authority](AuthorityKey).toRight(authorizationFailed(req)).right
+      user      <- authorized(authority)(req).right
+    } yield super.proceed(req.set(AuthKey, user))(f)).merge
   }
 
-  abstract override def cleanupFinally(xid: Xid): Unit = {
-    try {
-      users.remove(xid)
-    } finally {
-      super.cleanupFinally(xid)
-    }
-  }
-
-  implicit def loggedIn(implicit xid: Xid): Account = users.get(xid)
+  implicit def loggedIn[A](implicit req: ScopedRequest[A]): User = req.getAs[User](AuthKey).get
 
 }

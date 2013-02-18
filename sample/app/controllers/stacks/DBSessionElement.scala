@@ -1,43 +1,43 @@
 package controllers.stacks
 
-import play.api.mvc.{Result, Request, Controller}
-import java.util.concurrent.ConcurrentHashMap
+import play.api.mvc.{Result, Controller}
 import scalikejdbc._
-import jp.t2v.lab.play2.stackc.{StackableController, Xid}
+import jp.t2v.lab.play2.stackc.{ScopedRequest, RequestAttributeKey, StackableController}
 
 trait DBSessionElement extends StackableController {
     self: Controller =>
 
-  private val sessions: java.util.Map[Xid, (DB, DBSession)] = new ConcurrentHashMap[Xid, (DB, DBSession)]()
+  case object DBSessionKey extends RequestAttributeKey
 
-  abstract override def proceed[A](xid: Xid, req: Request[A])(f: Xid => Request[A] => Result): Result = {
+  abstract override def proceed[A](req: ScopedRequest[A])(f: ScopedRequest[A] => Result): Result = {
     val db = DB.connect()
     val tx = db.newTx
     tx.begin()
-    sessions.put(xid, (db, db.withinTxSession(tx)))
-    super.proceed(xid, req)(f)
+    super.proceed(req.set(DBSessionKey, (db, db.withinTxSession())))(f)
   }
 
-  abstract override def cleanupOnSucceeded(xid: Xid): Unit = {
+  abstract override def cleanupOnSucceeded[A](req: ScopedRequest[A]): Unit = {
     try {
-      val (db, session) = sessions.remove(xid)
-      db.currentTx.commit()
-      session.close()
+      req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
+        db.currentTx.commit()
+        session.close()
+      }
     } finally {
-      super.cleanupOnSucceeded(xid)
+      super.cleanupOnSucceeded(req)
     }
   }
 
-  abstract override def cleanupOnFailed(xid: Xid, e: Exception): Unit = {
+  abstract override def cleanupOnFailed[A](req: ScopedRequest[A], e: Exception): Unit = {
     try {
-      val (db, session) = sessions.remove(xid)
-      db.currentTx.rollback()
-      session.close()
+      req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
+        db.currentTx.rollback()
+        session.close()
+      }
     } finally {
-      super.cleanupOnFailed(xid, e)
+      super.cleanupOnFailed(req, e)
     }
   }
 
-  implicit def dbSession(implicit xid: Xid): DBSession = sessions.get(xid)._2
+  implicit def dbSession[A](implicit req: ScopedRequest): DBSession = req.getAs[(DB, DBSession)](DBSessionKey).get._2 // throw
 
 }

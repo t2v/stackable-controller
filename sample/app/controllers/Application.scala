@@ -12,12 +12,12 @@ object Application extends Controller with DBSessionElement with AuthElement wit
     Ok(views.html.index("Your new application is ready."))
   }
 
-  def messages = txAction { implicit xid => implicit req =>
+  def messages = txAction(AuthorityKey -> NormalUser) { implicit req =>
     val messages = Message.findAll
     Ok(html.messages(messages)(loggedIn))
   }
 
-  def editMessage(id: MessageId) = txAction { implicit xid => implicit req =>
+  def editMessage(id: MessageId) = txAction(AuthorityKey -> Administrator) { implicit req =>
     val messages = Message.findAll
     Ok(html.messages(messages)(loggedIn))
   }
