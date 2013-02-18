@@ -6,21 +6,21 @@ import util.{Failure, Success}
 import reflect.ClassTag
 import org.apache.commons.lang3.reflect.TypeUtils
 
-trait StackableController {
+trait ScopedRequestController {
    self: Controller =>
 
   implicit def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
-  def txAction[A](p: BodyParser[A], params: (RequestAttributeKey, Any)*)(f: ScopedRequest[A] => Result): Action[A] = Action(p) { req =>
+  final def ScopedAction[A](p: BodyParser[A], params: (RequestAttributeKey, Any)*)(f: ScopedRequest[A] => Result): Action[A] = Action(p) { req =>
     val request = ScopedRequest(req, params.toMap)
     try {
-      doCleanup(request, proceed(request)(f))
+      cleanup(request, proceed(request)(f))
     } catch {
       case e: Exception => cleanupOnFailed(request, e); throw e
     }
   }
 
-  def txAction(params: (RequestAttributeKey, Any)*)(f: ScopedRequest[AnyContent] => Result): Action[AnyContent] = txAction(parse.anyContent, params: _*)(f)
+  def ScopedAction(params: (RequestAttributeKey, Any)*)(f: ScopedRequest[AnyContent] => Result): Action[AnyContent] = ScopedAction(parse.anyContent, params: _*)(f)
 
   def proceed[A](request: ScopedRequest[A])(f: ScopedRequest[A] => Result): Result = f(request)
 
@@ -28,14 +28,14 @@ trait StackableController {
 
   def cleanupOnFailed[A](request: ScopedRequest[A], e: Exception): Unit = ()
 
-  private def doCleanup[A](request: ScopedRequest[A], result: Result): Result = result match {
+  private def cleanup[A](request: ScopedRequest[A], result: Result): Result = result match {
     case p: PlainResult => {
       cleanupOnSucceeded(request)
       p
     }
     case AsyncResult(f) => AsyncResult {
       f andThen {
-        case Success(r) => doCleanup(request, r)
+        case Success(r) => cleanup(request, r)
         case Failure(e: Exception) =>
           cleanupOnFailed(request, e)
       }

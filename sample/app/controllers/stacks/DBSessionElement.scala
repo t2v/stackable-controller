@@ -2,9 +2,9 @@ package controllers.stacks
 
 import play.api.mvc.{Result, Controller}
 import scalikejdbc._
-import jp.t2v.lab.play2.stackc.{ScopedRequest, RequestAttributeKey, StackableController}
+import jp.t2v.lab.play2.stackc.{ScopedRequest, RequestAttributeKey, ScopedRequestController}
 
-trait DBSessionElement extends StackableController {
+trait DBSessionElement extends ScopedRequestController {
     self: Controller =>
 
   case object DBSessionKey extends RequestAttributeKey

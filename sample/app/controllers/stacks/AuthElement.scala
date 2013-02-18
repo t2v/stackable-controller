@@ -1,11 +1,11 @@
 package controllers.stacks
 
 import play.api.mvc.{Result, Controller}
-import jp.t2v.lab.play2.stackc.{RequestAttributeKey, ScopedRequest, StackableController}
+import jp.t2v.lab.play2.stackc.{RequestAttributeKey, ScopedRequest, ScopedRequestController}
 import controllers.AuthConfigImpl
 import jp.t2v.lab.play20.auth.Auth
 
-trait AuthElement extends StackableController with AuthConfigImpl {
+trait AuthElement extends ScopedRequestController with AuthConfigImpl {
     self: Controller with Auth =>
 
   case object AuthKey extends RequestAttributeKey
