@@ -4,6 +4,7 @@ import play.api.mvc._
 import scala.concurrent.ExecutionContext
 import scala.util.{Try, Failure, Success}
 import java.util.concurrent.ConcurrentHashMap
+import scala.collection.JavaConverters._
 
 trait StackableController {
     self: Controller =>
@@ -11,7 +12,9 @@ trait StackableController {
   implicit def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
   final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey, Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = Action(p) { req =>
-    val request = RequestWithAttributes(req, new ConcurrentHashMap[RequestAttributeKey, Any]())
+    val attributes = new ConcurrentHashMap[RequestAttributeKey, Any]()
+    attributes.putAll(params.toMap.asJava)
+    val request = RequestWithAttributes(req, attributes)
     try {
       cleanup(request, proceed(request)(f))
     } catch {
