@@ -1,7 +1,6 @@
 package controllers
 
 import play.api.mvc._
-import jp.t2v.lab.play2.txact.{AuthController, DBSessionController}
 import jp.t2v.lab.play20.auth.Auth
 import models._
 import views._

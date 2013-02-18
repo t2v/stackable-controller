@@ -3,7 +3,7 @@ package controllers.stacks
 import play.api.mvc.{Result, Request, Controller}
 import java.util.concurrent.ConcurrentHashMap
 import models.Account
-import jp.t2v.lab.play2.stackc.StackableController
+import jp.t2v.lab.play2.stackc.{StackableController, Xid}
 
 trait AuthElement extends StackableController {
     self: Controller =>

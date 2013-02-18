@@ -3,7 +3,7 @@ package controllers.stacks
 import play.api.mvc.{Result, Request, Controller}
 import java.util.concurrent.ConcurrentHashMap
 import scalikejdbc._
-import jp.t2v.lab.play2.stackc.StackableController
+import jp.t2v.lab.play2.stackc.{StackableController, Xid}
 
 trait DBSessionElement extends StackableController {
     self: Controller =>
