@@ -25,14 +25,22 @@ trait StackableController {
 
   def cleanupOnSucceeded(xid: Xid): Unit = ()
 
-  def cleanupOnFailed(xid: Xid, e: Exception): Unit = cleanupOnSucceeded(xid)
+  def cleanupOnFailed(xid: Xid, e: Exception): Unit = ()
+
+  def cleanupFinally(xid: Xid): Unit = ()
 
   private def doCleanup(xid: Xid)(result: Result): Result = result match {
-    case p: PlainResult => {cleanupOnSucceeded(xid); p}
+    case p: PlainResult => {
+      cleanupOnSucceeded(xid)
+      cleanupFinally(xid)
+      p
+    }
     case AsyncResult(f) => AsyncResult {
       f andThen {
         case Success(r) => doCleanup(xid)(r)
-        case Failure(e: Exception) => cleanupOnFailed(xid, e)
+        case Failure(e: Exception) =>
+          cleanupOnFailed(xid, e)
+          cleanupFinally(xid)
       }
     }
   }

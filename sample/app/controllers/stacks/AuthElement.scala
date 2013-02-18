@@ -15,11 +15,11 @@ trait AuthElement extends StackableController {
     super.proceed(xid, req)(f)
   }
 
-  abstract override def cleanupOnSucceeded(xid: Xid): Unit = {
+  abstract override def cleanupFinally(xid: Xid): Unit = {
     try {
       users.remove(xid)
     } finally {
-      super.cleanupOnSucceeded(xid)
+      super.cleanupFinally(xid)
     }
   }
 
