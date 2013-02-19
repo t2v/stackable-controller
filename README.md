@@ -50,7 +50,7 @@ def index = PjaxAction { template => user => session => request =>
 }
 ```
 
-Just now, we needs new action that do DB transaction and pjax.
+Just now, we need a new action that does DB transaction and pjax.
 
 We have got to create another PjaxAction.
 
@@ -70,7 +70,7 @@ So, This module offers Composable Action composition with the powerful trait fea
 
 ## Example
 
-1. First step, Create sub trait of `StackableController` for evry function.
+1. First step, Create sub trait of `StackableController` for every function.
 
     ```scala
     package controllers.stack
@@ -197,7 +197,7 @@ So, This module offers Composable Action composition with the powerful trait fea
     }
     ```
 
-3. When we needs new action that do DB transaction and pjax, **it is only necessary to change mixed in traits.**
+3. When we need a new action that does DB transaction and pjax, **it is only necessary to change mixed in traits.**
 
     ```scala
     package controllers
