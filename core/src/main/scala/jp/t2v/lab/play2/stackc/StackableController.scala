@@ -24,6 +24,8 @@ trait StackableController {
 
   def StackAction(params: (RequestAttributeKey, Any)*)(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = StackAction(parse.anyContent, params: _*)(f)
 
+  def StackAction(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = StackAction(Nil: _*)(f)
+
   def proceed[A](request: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = f(request)
 
   def cleanupOnSucceeded[A](request: RequestWithAttributes[A]): Unit = ()
