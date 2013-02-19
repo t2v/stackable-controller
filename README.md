@@ -13,9 +13,9 @@ This module has been tested on Play2.1.0
 
 ## Motivation
 
-[Action Composition](http://www.playframework.com/documentation/2.1.0/ScalaActionsComposition) loses the composability.
+[Action Composition](http://www.playframework.com/documentation/2.1.0/ScalaActionsComposition) is somewhat limited in terms of composability.
 
-For example, put the case that we want DB transaction, auth, and pjax
+For example, imagine that we want automatic DB transaction management, auth, and pjax functionality.
 
 
 ```scala
@@ -50,9 +50,9 @@ def index = PjaxAction { template => user => session => request =>
 }
 ```
 
-Just now, we need a new action that does DB transaction and pjax.
+So far so good, but what if we need a new action that does both DB transaction management and pjax?
 
-We have got to create another PjaxAction.
+We have to create another PjaxAction.
 
 ```scala
 def PjaxAction(f: Template => Request[AnyContent] => Result): Action[AnyContent] = {
@@ -63,14 +63,14 @@ def PjaxAction(f: Template => Request[AnyContent] => Result): Action[AnyContent]
 }
 ```
 
-It's so ugly!
+What a mess!
 
 
-So, This module offers Composable Action composition with the powerful trait feature.
+As an alternative, this module offers Composable Action composition using the power of traits.
 
 ## Example
 
-1. First step, Create sub trait of `StackableController` for every function.
+1. First step, Create a sub trait of `StackableController` for every function.
 
     ```scala
     package controllers.stack
@@ -171,7 +171,7 @@ So, This module offers Composable Action composition with the powerful trait fea
     }
     ```
 
-2. mix in to Controller
+2. mix your traits into your Controller
 
     ```scala
     package controllers
@@ -197,7 +197,7 @@ So, This module offers Composable Action composition with the powerful trait fea
     }
     ```
 
-3. When we need a new action that does DB transaction and pjax, **it is only necessary to change mixed in traits.**
+3. Mixin different combinations of traits, depending on the functionality that you need.
 
     ```scala
     package controllers
