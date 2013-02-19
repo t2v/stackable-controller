@@ -35,16 +35,16 @@ def AuthAction(authority: Authority)(f: User => DBSession => Request[AnyContent]
 }
 
 type Template = Html => Html
-def PjaxAction(f: Template => User => DBSession => Request[AnyContent] => Result): Action[AnyContent] = {
-  AuthAction { user => session => request =>
-    val template = if (req.headers.contains("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
+def PjaxAction(authority: Authority)(f: Template => User => DBSession => Request[AnyContent] => Result): Action[AnyContent] = {
+  AuthAction(authority) { user => session => request =>
+    val template = if (req.headers.keys("X-Pjax")) views.html.pjaxTemplate.apply else views.html.fullTemplate.apply
     f(template)(user)(session)(request)
   }
 }
 ```
 
 ```scala
-def index = PjaxAction { template => user => session => request => 
+def index = PjaxAction(NormalUser) { template => user => session => request => 
   val messages = Message.findAll(session)
   Ok(views.hrml.index(messages)(template))
 }
@@ -57,7 +57,7 @@ We have to create another PjaxAction.
 ```scala
 def PjaxAction(f: Template => Request[AnyContent] => Result): Action[AnyContent] = {
   TxAction { session => request =>
-    val template = if (req.headers.contains("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
+    val template = if (req.headers.keys("X-Pjax")) html.pjaxTemplate.apply else views.html.fullTemplate.apply
     f(template)(session)(request)
   }
 }
@@ -76,7 +76,7 @@ As an alternative, this module offers Composable Action composition using the po
     package controllers.stack
 
     import play.api.mvc.{Result, Controller}
-    import jp.t2v.lab.play2.stackc.{RequestAttributeKey, RequestWithAtrributes, StackableController}
+    import jp.t2v.lab.play2.stackc.{RequestAttributeKey, RequestWithAttributes, StackableController}
     import controllers.AuthConfigImpl
     import jp.t2v.lab.play20.auth.Auth
 
@@ -86,14 +86,14 @@ As an alternative, this module offers Composable Action composition using the po
       case object AuthKey extends RequestAttributeKey
       case object AuthorityKey extends RequestAttributeKey
 
-      abstract override def proceed[A](req: RequestWithAtrributes[A])(f: RequestWithAtrributes[A] => Result): Result = {
+      abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
         (for {
           authority <- req.getAs[Authority](AuthorityKey).toRight(authorizationFailed(req)).right
           user      <- authorized(authority)(req).right
         } yield super.proceed(req.set(AuthKey, user))(f)).merge
       }
 
-      implicit def loggedIn[A](implicit req: RequestWithAtrributes[A]): User = req.getAs[User](AuthKey).get
+      implicit def loggedIn[A](implicit req: RequestWithAttributes[A]): User = req.getAs[User](AuthKey).get
 
     }
     ```
@@ -103,21 +103,21 @@ As an alternative, this module offers Composable Action composition using the po
 
     import play.api.mvc.{Result, Controller}
     import scalikejdbc._
-    import jp.t2v.lab.play2.stackc.{RequestWithAtrributes, RequestAttributeKey, StackableController}
+    import jp.t2v.lab.play2.stackc.{RequestWithAttributes, RequestAttributeKey, StackableController}
 
     trait DBSessionElement extends StackableController {
         self: Controller =>
 
       case object DBSessionKey extends RequestAttributeKey
 
-      abstract override def proceed[A](req: RequestWithAtrributes[A])(f: RequestWithAtrributes[A] => Result): Result = {
+      abstract override def proceed[A](req: RequestWithAtrributes[A])(f: RequestWithAttributes[A] => Result): Result = {
         val db = DB.connect()
         val tx = db.newTx
         tx.begin()
         super.proceed(req.set(DBSessionKey, (db, db.withinTxSession())))(f)
       }
 
-      abstract override def cleanupOnSucceeded[A](req: RequestWithAtrributes[A]): Unit = {
+      abstract override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
         try {
           req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
             db.currentTx.commit()
@@ -128,7 +128,7 @@ As an alternative, this module offers Composable Action composition using the po
         }
       }
 
-      abstract override def cleanupOnFailed[A](req: RequestWithAtrributes[A], e: Exception): Unit = {
+      abstract override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
         try {
           req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
             db.currentTx.rollback()
@@ -139,7 +139,7 @@ As an alternative, this module offers Composable Action composition using the po
         }
       }
 
-      implicit def dbSession[A](implicit req: RequestWithAtrributes): DBSession = req.getAs[(DB, DBSession)](DBSessionKey).get._2 // throw
+      implicit def dbSession[A](implicit req: RequestWithAttributes[A]): DBSession = req.getAs[(DB, DBSession)](DBSessionKey).get._2 // throw
 
     }
     ```
@@ -149,7 +149,7 @@ As an alternative, this module offers Composable Action composition using the po
 
     import play.api.mvc.{Result, Controller}
     import play.api.templates.Html
-    import jp.t2v.lab.play2.stackc.{RequestAttributeKey, RequestWithAtrributes, StackableController}
+    import jp.t2v.lab.play2.stackc.{RequestAttributeKey, RequestWithAttributes, StackableController}
     import controllers.AuthConfigImpl
     import jp.t2v.lab.play20.auth.Auth
 
@@ -161,12 +161,12 @@ As an alternative, this module offers Composable Action composition using the po
 
       case object TemplateKey extends RequestAttributeKey
 
-      abstract override def proceed[A](req: RequestWithAtrributes[A])(f: RequestWithAtrributes[A] => Result): Result = {
-        val template = if (req.headers.contains("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
+      abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+        val template = if (req.headers.keys("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
         super.proceed(req.set(TemplateKey, template))(f)
       }
 
-      implicit def template[A](implicit req: RequestWithAtrributes[A]): User = req.getAs[Template](TemplateKey).get
+      implicit def template[A](implicit req: RequestWithAttributes[A]): User = req.getAs[Template](TemplateKey).get
 
     }
     ```
