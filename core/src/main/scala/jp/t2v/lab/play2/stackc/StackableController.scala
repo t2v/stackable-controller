@@ -12,9 +12,7 @@ trait StackableController {
   implicit def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
   final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey, Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = Action(p) { req =>
-    val attributes = new ConcurrentHashMap[RequestAttributeKey, Any]()
-    attributes.putAll(params.toMap.asJava)
-    val request = RequestWithAttributes(req, attributes)
+    val request = RequestWithAttributes(req, new ConcurrentHashMap(params.toMap.asJava))
     try {
       cleanup(request, proceed(request)(f))
     } catch {
@@ -24,7 +22,7 @@ trait StackableController {
 
   def StackAction(params: (RequestAttributeKey, Any)*)(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = StackAction(parse.anyContent, params: _*)(f)
 
-  def StackAction(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = StackAction(Nil: _*)(f)
+  def StackAction(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = StackAction()(f)
 
   def proceed[A](request: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = f(request)
 

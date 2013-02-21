@@ -72,6 +72,7 @@ object StackableControllerProjects extends Build {
   lazy val sampleDependencies = Seq(
     // Add your project dependencies here,
     jdbc,
+    "play"               %% "play"                      % "2.1.0",
     "jp.t2v"             %% "play21.auth"               % "0.7",
     "com.github.seratch" %% "scalikejdbc"               % "[1.4,)",
     "com.github.seratch" %% "scalikejdbc-interpolation" % "[1.4,)",
@@ -80,8 +81,12 @@ object StackableControllerProjects extends Build {
   )
 
   lazy val sample =  play.Project("sample", _version, sampleDependencies, path = file("sample")).settings(
+    scalaVersion := "2.10.0"
     // Add your own project settings here
   ) dependsOn(core)
 
+  lazy val root = Project(id = "root", base = file(".")).settings(
+    scalaVersion := "2.10.0"
+  ).aggregate(core, sample) 
 
 }

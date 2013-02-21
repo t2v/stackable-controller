@@ -228,8 +228,6 @@ As an alternative, this module offers Composable Action composition using the po
 Add a dependency declaration into your Build.scala or build.sbt file:
 
 ```scala
-resolvers += "sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
-
-libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.1-SNAPSHOT"
+libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.1"
 ```
 
