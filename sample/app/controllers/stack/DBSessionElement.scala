@@ -9,14 +9,14 @@ trait DBSessionElement extends StackableController {
 
   case object DBSessionKey extends RequestAttributeKey
 
-  abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+  override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
     val db = DB.connect()
     val tx = db.newTx
     tx.begin()
     super.proceed(req.set(DBSessionKey, (db, db.withinTxSession())))(f)
   }
 
-  abstract override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
+  override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
     try {
       req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
         db.currentTx.commit()
@@ -27,7 +27,7 @@ trait DBSessionElement extends StackableController {
     }
   }
 
-  abstract override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
+  override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
     try {
       req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
         db.currentTx.rollback()

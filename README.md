@@ -86,7 +86,7 @@ As an alternative, this module offers Composable Action composition using the po
       case object AuthKey extends RequestAttributeKey
       case object AuthorityKey extends RequestAttributeKey
 
-      abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
         (for {
           authority <- req.getAs[Authority](AuthorityKey).toRight(authorizationFailed(req)).right
           user      <- authorized(authority)(req).right
@@ -117,7 +117,7 @@ As an alternative, this module offers Composable Action composition using the po
         super.proceed(req.set(DBSessionKey, (db, db.withinTxSession())))(f)
       }
 
-      abstract override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
+      override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
         try {
           req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
             db.currentTx.commit()
@@ -128,7 +128,7 @@ As an alternative, this module offers Composable Action composition using the po
         }
       }
 
-      abstract override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
+      override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
         try {
           req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
             db.currentTx.rollback()
@@ -161,7 +161,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       case object TemplateKey extends RequestAttributeKey
 
-      abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
         val template = if (req.headers.keys("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
         super.proceed(req.set(TemplateKey, template))(f)
       }

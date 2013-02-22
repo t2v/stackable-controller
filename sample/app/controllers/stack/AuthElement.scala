@@ -10,7 +10,7 @@ trait AuthElement extends StackableController {
   case object AuthKey extends RequestAttributeKey
   case object AuthorityKey extends RequestAttributeKey
 
-  abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+  override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
     (for {
       authority <- req.getAs[Authority](AuthorityKey).toRight(authorizationFailed(req)).right
       user      <- authorized(authority)(req).right
