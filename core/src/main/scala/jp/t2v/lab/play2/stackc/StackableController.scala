@@ -1,10 +1,9 @@
 package jp.t2v.lab.play2.stackc
 
 import play.api.mvc._
+import scala.collection.concurrent.TrieMap
 import scala.concurrent.ExecutionContext
 import scala.util.{Try, Failure, Success}
-import java.util.concurrent.ConcurrentHashMap
-import scala.collection.JavaConverters._
 
 trait StackableController {
     self: Controller =>
@@ -12,7 +11,7 @@ trait StackableController {
   implicit def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
   final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = Action(p) { req =>
-    val request = new RequestWithAttributes(req, new ConcurrentHashMap(params.toMap.asJava))
+    val request = new RequestWithAttributes(req, new TrieMap[RequestAttributeKey[_], Any] ++= params)
     try {
       cleanup(request, proceed(request)(f))
     } catch {
@@ -44,10 +43,10 @@ trait StackableController {
 
 trait RequestAttributeKey[A]
 
-class RequestWithAttributes[A](underlying: Request[A], attributes: java.util.Map[RequestAttributeKey[_], Any]) extends WrappedRequest[A](underlying) {
+class RequestWithAttributes[A](underlying: Request[A], attributes: TrieMap[RequestAttributeKey[_], Any]) extends WrappedRequest[A](underlying) {
 
   def get[B](key: RequestAttributeKey[B]): Option[B] = {
-    Option(attributes.get(key)).flatMap { item =>
+    attributes.get(key).flatMap { item =>
       Try(item.asInstanceOf[B]).toOption
     }
   }
