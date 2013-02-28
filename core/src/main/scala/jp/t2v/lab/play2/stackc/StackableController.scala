@@ -3,7 +3,7 @@ package jp.t2v.lab.play2.stackc
 import play.api.mvc._
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.ExecutionContext
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success}
 
 trait StackableController {
     self: Controller =>
@@ -45,11 +45,12 @@ trait RequestAttributeKey[A]
 
 class RequestWithAttributes[A](underlying: Request[A], attributes: TrieMap[RequestAttributeKey[_], Any]) extends WrappedRequest[A](underlying) {
 
-  def get[B](key: RequestAttributeKey[B]): Option[B] = {
+  def get[B](key: RequestAttributeKey[B]): Option[B] =
     attributes.get(key).flatMap { item =>
-      Try(item.asInstanceOf[B]).toOption
+      try Some(item.asInstanceOf[B]) catch {
+        case _: ClassCastException => None
+      }
     }
-  }
 
   /** side effect! */
   def set[B](key: RequestAttributeKey[B], value: B): RequestWithAttributes[A] = {
