@@ -7,7 +7,7 @@ import jp.t2v.lab.play2.stackc.{RequestWithAttributes, RequestAttributeKey, Stac
 trait DBSessionElement extends StackableController {
     self: Controller =>
 
-  case object DBSessionKey extends RequestAttributeKey
+  case object DBSessionKey extends RequestAttributeKey[(DB, DBSession)]
 
   override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
     val db = DB.connect()
@@ -18,7 +18,7 @@ trait DBSessionElement extends StackableController {
 
   override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
     try {
-      req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
+      req.get(DBSessionKey).map { case (db, session) =>
         db.currentTx.commit()
         session.close()
       }
@@ -29,7 +29,7 @@ trait DBSessionElement extends StackableController {
 
   override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
     try {
-      req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
+      req.get(DBSessionKey).map { case (db, session) =>
         db.currentTx.rollback()
         session.close()
       }
@@ -38,6 +38,6 @@ trait DBSessionElement extends StackableController {
     }
   }
 
-  implicit def dbSession[A](implicit req: RequestWithAttributes): DBSession = req.getAs[(DB, DBSession)](DBSessionKey).get._2 // throw
+  implicit def dbSession[A](implicit req: RequestWithAttributes[A]): DBSession = req.get(DBSessionKey).get._2 // throw
 
 }

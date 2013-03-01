@@ -1,18 +1,17 @@
 package jp.t2v.lab.play2.stackc
 
 import play.api.mvc._
+import scala.collection.concurrent.TrieMap
 import scala.concurrent.ExecutionContext
-import scala.util.{Try, Failure, Success}
-import java.util.concurrent.ConcurrentHashMap
-import scala.collection.JavaConverters._
+import scala.util.{Failure, Success}
 
 trait StackableController {
     self: Controller =>
 
   implicit def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
-  final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey, Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = Action(p) { req =>
-    val request = RequestWithAttributes(req, new ConcurrentHashMap(params.toMap.asJava))
+  final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = Action(p) { req =>
+    val request = new RequestWithAttributes(req, new TrieMap[RequestAttributeKey[_], Any] ++= params)
     try {
       cleanup(request, proceed(request)(f))
     } catch {
@@ -20,7 +19,7 @@ trait StackableController {
     }
   }
 
-  def StackAction(params: (RequestAttributeKey, Any)*)(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = StackAction(parse.anyContent, params: _*)(f)
+  def StackAction(params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = StackAction(parse.anyContent, params: _*)(f)
 
   def StackAction(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = StackAction()(f)
 
@@ -42,18 +41,19 @@ trait StackableController {
 
 }
 
-trait RequestAttributeKey
+trait RequestAttributeKey[A]
 
-case class RequestWithAttributes[A](underlying: Request[A], attributes: java.util.Map[RequestAttributeKey, Any]) extends WrappedRequest[A](underlying) {
+class RequestWithAttributes[A](underlying: Request[A], attributes: TrieMap[RequestAttributeKey[_], Any]) extends WrappedRequest[A](underlying) {
 
-  def getAs[B](key: RequestAttributeKey): Option[B] = {
-    Option(attributes.get(key)).flatMap { item =>
-      Try(item.asInstanceOf[B]).toOption
+  def get[B](key: RequestAttributeKey[B]): Option[B] =
+    attributes.get(key).flatMap { item =>
+      try Some(item.asInstanceOf[B]) catch {
+        case _: ClassCastException => None
+      }
     }
-  }
 
   /** side effect! */
-  def set(key: RequestAttributeKey, value: Any): RequestWithAttributes[A] = {
+  def set[B](key: RequestAttributeKey[B], value: B): RequestWithAttributes[A] = {
     attributes.put(key, value)
     this
   }
