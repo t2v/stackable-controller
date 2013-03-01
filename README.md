@@ -73,55 +73,44 @@ As an alternative, this module offers Composable Action composition using the po
 1. First step, Create a sub trait of `StackableController` for every function.
 
     ```scala
-    package controllers.stack
-
-    import play.api.mvc.{Result, Controller}
-    import jp.t2v.lab.play2.stackc.{RequestAttributeKey, RequestWithAttributes, StackableController}
-    import controllers.AuthConfigImpl
-    import jp.t2v.lab.play20.auth.Auth
-
     trait AuthElement extends StackableController with AuthConfigImpl {
         self: Controller with Auth =>
 
-      case object AuthKey extends RequestAttributeKey
-      case object AuthorityKey extends RequestAttributeKey
+      case object AuthKey extends RequestAttributeKey[User]
+      case object AuthorityKey extends RequestAttributeKey[Authority]
 
       override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
         (for {
-          authority <- req.getAs[Authority](AuthorityKey).toRight(authorizationFailed(req)).right
+          authority <- req.get(AuthorityKey).toRight(authorizationFailed(req)).right
           user      <- authorized(authority)(req).right
         } yield super.proceed(req.set(AuthKey, user))(f)).merge
       }
 
-      implicit def loggedIn[A](implicit req: RequestWithAttributes[A]): User = req.getAs[User](AuthKey).get
+      implicit def loggedIn[A](implicit req: RequestWithAttributes[A]): User = req.get(AuthKey).get
 
     }
     ```
 
     ```scala
-    package controllers.stack
-
-    import play.api.mvc.{Result, Controller}
-    import scalikejdbc._
-    import jp.t2v.lab.play2.stackc.{RequestWithAttributes, RequestAttributeKey, StackableController}
-
     trait DBSessionElement extends StackableController {
         self: Controller =>
 
-      case object DBSessionKey extends RequestAttributeKey
+      case object DBSessionKey extends RequestAttributeKey[DB]
 
       abstract override def proceed[A](req: RequestWithAtrributes[A])(f: RequestWithAttributes[A] => Result): Result = {
         val db = DB.connect()
-        val tx = db.newTx
-        tx.begin()
-        super.proceed(req.set(DBSessionKey, (db, db.withinTxSession())))(f)
+        db.begin()
+        super.proceed(req.set(DBSessionKey, db))(f)
       }
 
       override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
         try {
-          req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
-            db.currentTx.commit()
-            session.close()
+          req.getAs[DB](DBSessionKey).map { db =>
+            try {
+              db.commit()
+            } finally {
+              db.close()
+            }
           }
         } finally {
           super.cleanupOnSucceeded(req)
@@ -130,43 +119,34 @@ As an alternative, this module offers Composable Action composition using the po
 
       override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
         try {
-          req.getAs[(DB, DBSession)](DBSessionKey).map { case (db, session) =>
-            db.currentTx.rollback()
-            session.close()
+          req.getAs[DB](DBSessionKey).map { db =>
+            db.rollbackIfActive()
+            db.close()
           }
         } finally {
           super.cleanupOnFailed(req, e)
         }
       }
 
-      implicit def dbSession[A](implicit req: RequestWithAttributes[A]): DBSession = req.getAs[(DB, DBSession)](DBSessionKey).get._2 // throw
+      implicit def dbSession[A](implicit req: RequestWithAttributes[A]): DBSession = req.get(DBSessionKey).get.withinTxSession() // throw
 
     }
     ```
 
     ```scala
-    package controllers.stack
-
-    import play.api.mvc.{Result, Controller}
-    import play.api.templates.Html
-    import jp.t2v.lab.play2.stackc.{RequestAttributeKey, RequestWithAttributes, StackableController}
-    import controllers.AuthConfigImpl
-    import jp.t2v.lab.play20.auth.Auth
-
     trait PjaxElement extends StackableController with AuthConfigImpl {
         self: Controller with Auth =>
 
-
       type Template = Html => Html
 
-      case object TemplateKey extends RequestAttributeKey
+      case object TemplateKey extends RequestAttributeKey[Template]
 
       override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
         val template = if (req.headers.keys("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
         super.proceed(req.set(TemplateKey, template))(f)
       }
 
-      implicit def template[A](implicit req: RequestWithAttributes[A]): User = req.getAs[Template](TemplateKey).get
+      implicit def template[A](implicit req: RequestWithAttributes[A]): User = req.get(TemplateKey).get
 
     }
     ```
@@ -174,15 +154,7 @@ As an alternative, this module offers Composable Action composition using the po
 2. mix your traits into your Controller
 
     ```scala
-    package controllers
-
-    import play.api.mvc._
-    import jp.t2v.lab.play20.auth.Auth
-    import models._
-    import views._
-    import controllers.stack._
-
-    object Application extends Controller with PjaxElement with DBSessionElement with AuthElement with Auth with AuthConfigImpl {
+    object Application extends Controller with PjaxElement with AuthElement with DBSessionElement with Auth with AuthConfigImpl {
 
       def messages = StackAction(AuthorityKey -> NormalUser) { implicit req =>
         val messages = Message.findAll
@@ -200,22 +172,14 @@ As an alternative, this module offers Composable Action composition using the po
 3. Mixin different combinations of traits, depending on the functionality that you need.
 
     ```scala
-    package controllers
-
-    import play.api.mvc._
-    import jp.t2v.lab.play20.auth.Auth
-    import models._
-    import views._
-    import controllers.stack._
-
     object NoAuthController extends Controller with PjaxElement with DBSessionElement {
       
-      def messages = StackAction() { implicit req =>
+      def messages = StackAction { implicit req =>
         val messages = Message.findAll
         Ok(html.messages(messages)(GuestUser)(template))
       }
 
-      def editMessage(id: MessageId) = StackAction() { implicit req =>
+      def editMessage(id: MessageId) = StackAction { implicit req =>
         val messages = Message.findAll
         Ok(html.messages(messages)(GuestUser)(template))
       }
@@ -231,3 +195,6 @@ Add a dependency declaration into your Build.scala or build.sbt file:
 libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.1"
 ```
 
+## License
+
+This library is released under the Apache Software License, version 2, which should be included with the source in a file named `LICENSE`.

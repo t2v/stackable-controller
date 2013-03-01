@@ -6,7 +6,7 @@ object StackableControllerProjects extends Build {
 
   lazy val _organization = "jp.t2v"
 
-  lazy val _version = "0.1"
+  lazy val _version = "0.2"
 
   def _publishTo(v: String) = {
     val nexus = "https://oss.sonatype.org/"
