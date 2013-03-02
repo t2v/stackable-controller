@@ -192,7 +192,7 @@ As an alternative, this module offers Composable Action composition using the po
 Add a dependency declaration into your Build.scala or build.sbt file:
 
 ```scala
-libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.1"
+libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.2"
 ```
 
 ## License
