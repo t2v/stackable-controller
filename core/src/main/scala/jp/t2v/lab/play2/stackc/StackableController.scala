@@ -4,6 +4,7 @@ import play.api.mvc._
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
+import scala.util.control.{NonFatal, ControlThrowable}
 
 trait StackableController {
     self: Controller =>
@@ -15,7 +16,8 @@ trait StackableController {
     try {
       cleanup(request, proceed(request)(f))
     } catch {
-      case e: Exception => cleanupOnFailed(request, e); throw e
+      case e: ControlThrowable => cleanupOnSucceeded(request); throw e
+      case NonFatal(e: Exception) => cleanupOnFailed(request, e); throw e
     }
   }
 
