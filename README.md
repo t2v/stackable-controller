@@ -55,7 +55,7 @@ So far so good, but what if we need a new action that does both DB transaction m
 We have to create another PjaxAction.
 
 ```scala
-def PjaxAction(f: Template => Request[AnyContent] => Result): Action[AnyContent] = {
+def PjaxAction(f: Template => DBSession => Request[AnyContent] => Result): Action[AnyContent] = {
   TxAction { session => request =>
     val template = if (req.headers.keys("X-Pjax")) html.pjaxTemplate.apply else views.html.fullTemplate.apply
     f(template)(session)(request)
@@ -86,7 +86,7 @@ As an alternative, this module offers Composable Action composition using the po
         } yield super.proceed(req.set(AuthKey, user))(f)).merge
       }
 
-      implicit def loggedIn[A](implicit req: RequestWithAttributes[A]): User = req.get(AuthKey).get
+      implicit def loggedIn(implicit req: RequestWithAttributes[_]): User = req.get(AuthKey).get
 
     }
     ```
@@ -128,7 +128,7 @@ As an alternative, this module offers Composable Action composition using the po
         }
       }
 
-      implicit def dbSession[A](implicit req: RequestWithAttributes[A]): DBSession = req.get(DBSessionKey).get.withinTxSession() // throw
+      implicit def dbSession(implicit req: RequestWithAttributes[_]): DBSession = req.get(DBSessionKey).get.withinTxSession() // throw
 
     }
     ```
@@ -146,7 +146,7 @@ As an alternative, this module offers Composable Action composition using the po
         super.proceed(req.set(TemplateKey, template))(f)
       }
 
-      implicit def template[A](implicit req: RequestWithAttributes[A]): User = req.get(TemplateKey).get
+      implicit def template(implicit req: RequestWithAttributes[_]): User = req.get(TemplateKey).get
 
     }
     ```
