@@ -192,8 +192,39 @@ As an alternative, this module offers Composable Action composition using the po
 Add a dependency declaration into your Build.scala or build.sbt file:
 
 ```scala
-libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.2"
+libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.2.1"
 ```
+
+## ExecutionContext
+
+When you want to use `scala.concurrent.ExecutionContext`, you can use `StackActionExecutionContext` method.
+
+`StackActionExecutionContext` returns an `ExecutionContext` that is given when `StackAction` method calling.
+So, users of your StackElement can customize `ExecutionContext`.
+
+```scala
+    trait AsyncElement extends StackableController with AuthConfigImpl {
+        self: Controller with Auth =>
+
+      private case object FooKey extends RequestAttributeKey[Foo]
+
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+        val ctx: ExecutionContext = StackActionExecutionContext(req)
+        val future: Future[Foo] = getFooAsynchronously(ctx)
+        Async {
+          future map { 
+            foo => super.proceed(req.set(FooKey, foo))(f)
+          } recover {
+            _ => super.proceed(req)(f)
+          }
+        }
+      }
+
+      implicit def foo(implicit req: RequestWithAttributes[_]): Foo = req.get(FooKey).get
+
+    }
+```
+
 
 ## License
 
