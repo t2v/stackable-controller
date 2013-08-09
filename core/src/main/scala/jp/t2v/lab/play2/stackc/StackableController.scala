@@ -9,10 +9,10 @@ import scala.util.control.{NonFatal, ControlThrowable}
 trait StackableController {
     self: Controller =>
 
-  implicit def executionContext: ExecutionContext = ExecutionContext.Implicits.global
+  private object ExecutionContextKey extends RequestAttributeKey[ExecutionContext]
 
-  final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = Action(p) { req =>
-    val request = new RequestWithAttributes(req, new TrieMap[RequestAttributeKey[_], Any] ++= params)
+  final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Result)(implicit ctx: ExecutionContext = ExecutionContext.Implicits.global): Action[A] = Action(p) { req =>
+    val request = new RequestWithAttributes(req, new TrieMap[RequestAttributeKey[_], Any] ++= params += (ExecutionContextKey -> ctx))
     try {
       cleanup(request, proceed(request)(f))
     } catch {
@@ -31,7 +31,7 @@ trait StackableController {
 
   def cleanupOnFailed[A](request: RequestWithAttributes[A], e: Exception): Unit = ()
 
-  private def cleanup[A](request: RequestWithAttributes[A], result: Result): Result = result match {
+  private def cleanup[A](request: RequestWithAttributes[A], result: Result)(implicit ctx: ExecutionContext): Result = result match {
     case p: PlainResult => {cleanupOnSucceeded(request); p}
     case AsyncResult(f) => AsyncResult {
       f andThen {
@@ -40,6 +40,9 @@ trait StackableController {
       }
     }
   }
+
+  protected def StackActionExecutionContext(implicit req: RequestWithAttributes[_]): ExecutionContext =
+    req.get(ExecutionContextKey).getOrElse(ExecutionContext.Implicits.global)
 
 }
 
