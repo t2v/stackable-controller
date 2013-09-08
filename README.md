@@ -19,7 +19,7 @@ For example, imagine that we want automatic DB transaction management, auth, and
 
 
 ```scala
-def TxAction(f: DBSession => Request[AnyContent] => Result): Action[AnyContent] = {
+def TxAction(f: DBSession => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = {
   Action { request =>
     DB localTx { session =>
       f(session)(request)
@@ -27,7 +27,7 @@ def TxAction(f: DBSession => Request[AnyContent] => Result): Action[AnyContent] 
   }
 }
 
-def AuthAction(authority: Authority)(f: User => DBSession => Request[AnyContent] => Result): Action[AnyContent] = {
+def AuthAction(authority: Authority)(f: User => DBSession => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = {
   TxAction { session => request =>
     val user: Either[Result, User] = authorized(authority)(request)
     user.right.map(u => f(u)(session)(request)).merge
@@ -35,7 +35,7 @@ def AuthAction(authority: Authority)(f: User => DBSession => Request[AnyContent]
 }
 
 type Template = Html => Html
-def PjaxAction(authority: Authority)(f: Template => User => DBSession => Request[AnyContent] => Result): Action[AnyContent] = {
+def PjaxAction(authority: Authority)(f: Template => User => DBSession => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = {
   AuthAction(authority) { user => session => request =>
     val template = if (req.headers.keys("X-Pjax")) views.html.pjaxTemplate.apply else views.html.fullTemplate.apply
     f(template)(user)(session)(request)
@@ -55,7 +55,7 @@ So far so good, but what if we need a new action that does both DB transaction m
 We have to create another PjaxAction.
 
 ```scala
-def PjaxAction(f: Template => DBSession => Request[AnyContent] => Result): Action[AnyContent] = {
+def PjaxAction(f: Template => DBSession => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = {
   TxAction { session => request =>
     val template = if (req.headers.keys("X-Pjax")) html.pjaxTemplate.apply else views.html.fullTemplate.apply
     f(template)(session)(request)
@@ -79,7 +79,7 @@ As an alternative, this module offers Composable Action composition using the po
       case object AuthKey extends RequestAttributeKey[User]
       case object AuthorityKey extends RequestAttributeKey[Authority]
 
-      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
         (for {
           authority <- req.get(AuthorityKey).toRight(authorizationFailed(req)).right
           user      <- authorized(authority)(req).right
@@ -97,7 +97,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       case object DBSessionKey extends RequestAttributeKey[DB]
 
-      abstract override def proceed[A](req: RequestWithAtrributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+      abstract override def proceed[A](req: RequestWithAtrributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
         val db = DB.connect()
         db.begin()
         super.proceed(req.set(DBSessionKey, db))(f)
@@ -117,7 +117,7 @@ As an alternative, this module offers Composable Action composition using the po
         }
       }
 
-      override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
+      override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Throwable): Unit = {
         try {
           req.getAs[DB](DBSessionKey).map { db =>
             db.rollbackIfActive()
@@ -141,7 +141,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       case object TemplateKey extends RequestAttributeKey[Template]
 
-      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
         val template = if (req.headers.keys("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
         super.proceed(req.set(TemplateKey, template))(f)
       }

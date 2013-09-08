@@ -1,25 +1,25 @@
 package controllers
 
 import play.api.mvc._
-import jp.t2v.lab.play20.auth.Auth
 import models._
 import views._
 import controllers.stack._
+import jp.t2v.lab.play2.stackc.RequestWithAttributes
 
-object Application extends Controller with DBSessionElement with AuthElement with Auth with AuthConfigImpl {
+object Application extends Controller with DBSessionElement {
   
   def index = Action {
     Ok(views.html.index("Your new application is ready."))
   }
 
-  def messages = StackAction(AuthorityKey -> NormalUser) { implicit req =>
+  def messages = StackAction { implicit req =>
     val messages = Message.findAll
-    Ok(html.messages(messages)(loggedIn))
+    Ok(views.html.messages(messages))
   }
 
-  def editMessage(id: MessageId) = StackAction(AuthorityKey -> Administrator) { implicit req =>
+  def editMessage(id: MessageId) = StackAction { implicit req =>
     val messages = Message.findAll
-    Ok(html.messages(messages)(loggedIn))
+    Ok(views.html.messages(messages))
   }
 
 }

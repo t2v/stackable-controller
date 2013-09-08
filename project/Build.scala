@@ -6,7 +6,7 @@ object StackableControllerProjects extends Build {
 
   lazy val _organization = "jp.t2v"
 
-  lazy val _version = "0.2.1"
+  lazy val _version = "0.3.0-SNAPSHOT"
 
   def _publishTo(v: String) = {
     val nexus = "https://oss.sonatype.org/"
@@ -52,13 +52,13 @@ object StackableControllerProjects extends Build {
       organization := _organization,
       name := "stackable-controller",
       version := _version,
-      scalaVersion := "2.10.0",
+      scalaVersion := "2.10.2",
       publishTo <<= version { (v: String) => _publishTo(v) },
       publishMavenStyle := true,
       resolvers ++= _resolvers,
       libraryDependencies ++= Seq(
           // scope: compile
-          "play" %% "play" % "2.1.0"
+          "com.typesafe.play" %% "play" % "2.2.0-RC1"
       ),
       sbtPlugin := false,
       scalacOptions ++= _scalacOptions,
@@ -72,21 +72,21 @@ object StackableControllerProjects extends Build {
   lazy val sampleDependencies = Seq(
     // Add your project dependencies here,
     jdbc,
-    "play"               %% "play"                      % "2.1.0",
-    "jp.t2v"             %% "play21.auth"               % "0.7",
-    "com.github.seratch" %% "scalikejdbc"               % "[1.4,)",
-    "com.github.seratch" %% "scalikejdbc-interpolation" % "[1.4,)",
-    "com.github.seratch" %% "scalikejdbc-play-plugin"   % "[1.4,)",
+    "com.typesafe.play"  %% "play"                      % "2.2.0-RC1",
+//    "jp.t2v"             %% "play2.auth"                % "0.10.1",
+    "com.github.seratch" %% "scalikejdbc"               % "[1.6,)",
+    "com.github.seratch" %% "scalikejdbc-interpolation" % "[1.6,)",
+    "com.github.seratch" %% "scalikejdbc-play-plugin"   % "[1.6,)",
     "org.slf4j"          %  "slf4j-simple"              % "[1.7,)"
   )
 
   lazy val sample =  play.Project("sample", _version, sampleDependencies, path = file("sample")).settings(
-    scalaVersion := "2.10.0"
+    scalaVersion := "2.10.2"
     // Add your own project settings here
   ) dependsOn(core)
 
   lazy val root = Project(id = "root", base = file(".")).settings(
-    scalaVersion := "2.10.0"
+    scalaVersion := "2.10.2"
   ).aggregate(core, sample) 
 
 }
