@@ -1,15 +1,16 @@
 package controllers.stack
 
-import play.api.mvc.{Result, Controller}
+import play.api.mvc.{SimpleResult, Result, Controller}
 import scalikejdbc._
 import jp.t2v.lab.play2.stackc.{RequestWithAttributes, RequestAttributeKey, StackableController}
+import scala.concurrent.Future
 
 trait DBSessionElement extends StackableController {
     self: Controller =>
 
   case object DBSessionKey extends RequestAttributeKey[(DB, DBSession)]
 
-  override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+  override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
     val db = DB.connect()
     val tx = db.newTx
     tx.begin()
@@ -27,7 +28,7 @@ trait DBSessionElement extends StackableController {
     }
   }
 
-  override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Exception): Unit = {
+  override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Throwable): Unit = {
     try {
       req.get(DBSessionKey).map { case (db, session) =>
         db.currentTx.rollback()
