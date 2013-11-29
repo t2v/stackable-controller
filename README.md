@@ -146,7 +146,7 @@ As an alternative, this module offers Composable Action composition using the po
         super.proceed(req.set(TemplateKey, template))(f)
       }
 
-      implicit def template(implicit req: RequestWithAttributes[_]): User = req.get(TemplateKey).get
+      implicit def template(implicit req: RequestWithAttributes[_]): Template = req.get(TemplateKey).get
 
     }
     ```
