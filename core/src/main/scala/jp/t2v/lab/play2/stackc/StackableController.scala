@@ -10,7 +10,7 @@ trait StackableController {
     self: Controller =>
 
   final class StackActionBuilder(params: (RequestAttributeKey[_], Any)*) extends ActionBuilder[RequestWithAttributes] {
-    def invokeBlock[A](req: Request[A], block: (RequestWithAttributes[A]) => Future[SimpleResult]): Future[SimpleResult] = {
+    def invokeBlock[A](req: Request[A], block: (RequestWithAttributes[A]) => Future[Result]): Future[Result] = {
       val request = new RequestWithAttributes(req, new TrieMap[RequestAttributeKey[_], Any] ++= params)
       try {
         cleanup(request, proceed(request)(block))(StackActionExecutionContext(request))
@@ -21,21 +21,21 @@ trait StackableController {
     }
   }
 
-  final def AsyncStack[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Future[SimpleResult]): Action[A] = new StackActionBuilder(params: _*).async(p)(f)
-  final def AsyncStack(params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[AnyContent] => Future[SimpleResult]): Action[AnyContent] = new StackActionBuilder(params: _*).async(f)
-  final def AsyncStack(f: RequestWithAttributes[AnyContent] => Future[SimpleResult]): Action[AnyContent] = new StackActionBuilder().async(f)
+  final def AsyncStack[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Future[Result]): Action[A] = new StackActionBuilder(params: _*).async(p)(f)
+  final def AsyncStack(params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[AnyContent] => Future[Result]): Action[AnyContent] = new StackActionBuilder(params: _*).async(f)
+  final def AsyncStack(f: RequestWithAttributes[AnyContent] => Future[Result]): Action[AnyContent] = new StackActionBuilder().async(f)
 
-  final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => SimpleResult): Action[A] = new StackActionBuilder(params: _*).apply(p)(f)
-  final def StackAction(params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[AnyContent] => SimpleResult): Action[AnyContent] = new StackActionBuilder(params: _*).apply(f)
-  final def StackAction(f: RequestWithAttributes[AnyContent] => SimpleResult): Action[AnyContent] = new StackActionBuilder().apply(f)
+  final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = new StackActionBuilder(params: _*).apply(p)(f)
+  final def StackAction(params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = new StackActionBuilder(params: _*).apply(f)
+  final def StackAction(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = new StackActionBuilder().apply(f)
 
-  def proceed[A](request: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = f(request)
+  def proceed[A](request: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = f(request)
 
   def cleanupOnSucceeded[A](request: RequestWithAttributes[A]): Unit = ()
 
   def cleanupOnFailed[A](request: RequestWithAttributes[A], e: Throwable): Unit = ()
 
-  private def cleanup[A](request: RequestWithAttributes[A], result: Future[SimpleResult])(implicit ctx: ExecutionContext): Future[SimpleResult] = result andThen {
+  private def cleanup[A](request: RequestWithAttributes[A], result: Future[Result])(implicit ctx: ExecutionContext): Future[Result] = result andThen {
     case Success(p) => cleanupOnSucceeded(request)
     case Failure(e) => cleanupOnFailed(request, e)
   }

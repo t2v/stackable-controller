@@ -6,7 +6,7 @@ object StackableControllerProjects extends Build {
 
   lazy val _organization = "jp.t2v"
 
-  lazy val _version = "0.3.0"
+  lazy val _version = "0.4.0-SNAPSHOT"
 
   def _publishTo(v: String) = {
     val nexus = "https://oss.sonatype.org/"
@@ -52,13 +52,13 @@ object StackableControllerProjects extends Build {
       organization := _organization,
       name := "stackable-controller",
       version := _version,
-      scalaVersion := "2.10.3",
+      scalaVersion := "2.10.4",
       publishTo <<= version { (v: String) => _publishTo(v) },
       publishMavenStyle := true,
       resolvers ++= _resolvers,
       libraryDependencies ++= Seq(
           // scope: compile
-          "com.typesafe.play" %% "play" % "2.2.0" % "provided"
+          "com.typesafe.play" %% "play" % "2.3-M1" % "provided"
       ),
       sbtPlugin := false,
       scalacOptions ++= _scalacOptions,
@@ -72,7 +72,7 @@ object StackableControllerProjects extends Build {
   lazy val sampleDependencies = Seq(
     // Add your project dependencies here,
     jdbc,
-    "com.typesafe.play"  %% "play"                      % "2.2.1",
+    "com.typesafe.play"  %% "play"                      % "2.3-M1",
     "com.github.seratch" %% "scalikejdbc"               % "[1.6,)",
     "com.github.seratch" %% "scalikejdbc-interpolation" % "[1.6,)",
     "com.github.seratch" %% "scalikejdbc-play-plugin"   % "[1.6,)",
@@ -80,12 +80,12 @@ object StackableControllerProjects extends Build {
   )
 
   lazy val sample =  play.Project("sample", _version, sampleDependencies, path = file("sample")).settings(
-    scalaVersion := "2.10.3"
+    scalaVersion := "2.10.4"
     // Add your own project settings here
   ) dependsOn(core)
 
   lazy val root = Project(id = "root", base = file(".")).settings(
-    scalaVersion := "2.10.3"
+    scalaVersion := "2.10.4"
   ).aggregate(core, sample) 
 
 }
