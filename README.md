@@ -97,7 +97,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       case object DBSessionKey extends RequestAttributeKey[DB]
 
-      abstract override def proceed[A](req: RequestWithAtrributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
+      abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
         val db = DB.connect()
         db.begin()
         super.proceed(req.set(DBSessionKey, db))(f)
@@ -105,7 +105,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
         try {
-          req.getAs[DB](DBSessionKey).map { db =>
+          req.get(DBSessionKey).map { db =>
             try {
               db.commit()
             } finally {
@@ -119,7 +119,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Throwable): Unit = {
         try {
-          req.getAs[DB](DBSessionKey).map { db =>
+          req.get(DBSessionKey).map { db =>
             db.rollbackIfActive()
             db.close()
           }
