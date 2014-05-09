@@ -1,6 +1,5 @@
 import sbt._
 import Keys._
-import play.Project._
 
 object StackableControllerProjects extends Build {
 
@@ -15,10 +14,8 @@ object StackableControllerProjects extends Build {
   }
 
   lazy val _resolvers = Seq(
-    "typesafe repo" at "http://repo.typesafe.com/typesafe/repo",
     "typesafe releases" at "http://repo.typesafe.com/typesafe/releases",
-    "sonatype releases" at "http://oss.sonatype.org/content/repositories/releases",
-    "sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"
+    "sonatype releases" at "http://oss.sonatype.org/content/repositories/releases"
   )
 
   lazy val _scalacOptions = Seq("-unchecked")
@@ -47,41 +44,40 @@ object StackableControllerProjects extends Build {
 
   lazy val core = Project(
     id = "core", 
-    base = file("core"), 
-    settings = Defaults.defaultSettings ++ Seq(
-      organization := _organization,
-      name := "stackable-controller",
-      version := _version,
-      scalaVersion := "2.10.4",
-      publishTo <<= version { (v: String) => _publishTo(v) },
-      publishMavenStyle := true,
-      resolvers ++= _resolvers,
-      libraryDependencies ++= Seq(
-          // scope: compile
-          "com.typesafe.play" %% "play" % "2.3-M1" % "provided"
-      ),
-      sbtPlugin := false,
-      scalacOptions ++= _scalacOptions,
-      publishMavenStyle := true,
-      publishArtifact in Test := false,
-      pomIncludeRepository := { x => false },
-      pomExtra := _pomExtra
+    base = file("core")
+  ).settings(
+    organization := _organization,
+    name := "stackable-controller",
+    version := _version,
+    scalaVersion := "2.10.4",
+    crossScalaVersions := scalaVersion.value :: "2.11.0" :: Nil,
+    publishTo <<= version { (v: String) => _publishTo(v) },
+    publishMavenStyle := true,
+    resolvers ++= _resolvers,
+    libraryDependencies ++= Seq(
+      "com.typesafe.play" %% "play" % play.core.PlayVersion.current % "provided"
+    ),
+    sbtPlugin := false,
+    scalacOptions ++= _scalacOptions,
+    publishMavenStyle := true,
+    publishArtifact in Test := false,
+    pomIncludeRepository := { x => false },
+    pomExtra := _pomExtra
+  )
+
+  lazy val sample = Project("sample", file("sample")).enablePlugins(play.PlayScala).settings(
+    version := _version,
+    scalaVersion := "2.10.4",
+    resolvers ++= _resolvers,
+    libraryDependencies ++= Seq(
+      play.Play.autoImport.jdbc,
+      "com.typesafe.play"  %% "play"                      % play.core.PlayVersion.current,
+      "org.scalikejdbc"    %% "scalikejdbc"               % "2.0.0-RC3",
+      // TODO scalikejdbc-play-plugin for Scala2.11, play2.3
+      // https://github.com/scalikejdbc/scalikejdbc-play-support/issues/4
+      "org.scalikejdbc"    %% "scalikejdbc-play-plugin"   % "2.2.0-RC",
+      "org.slf4j"          %  "slf4j-simple"              % "[1.7,)"
     )
-  )
-
-  lazy val sampleDependencies = Seq(
-    // Add your project dependencies here,
-    jdbc,
-    "com.typesafe.play"  %% "play"                      % "2.3-M1",
-    "com.github.seratch" %% "scalikejdbc"               % "[1.6,)",
-    "com.github.seratch" %% "scalikejdbc-interpolation" % "[1.6,)",
-    "com.github.seratch" %% "scalikejdbc-play-plugin"   % "[1.6,)",
-    "org.slf4j"          %  "slf4j-simple"              % "[1.7,)"
-  )
-
-  lazy val sample =  play.Project("sample", _version, sampleDependencies, path = file("sample")).settings(
-    scalaVersion := "2.10.4"
-    // Add your own project settings here
   ) dependsOn(core)
 
   lazy val root = Project(id = "root", base = file(".")).settings(
