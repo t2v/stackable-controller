@@ -50,7 +50,7 @@ object StackableControllerProjects extends Build {
     name := "stackable-controller",
     version := _version,
     scalaVersion := "2.10.4",
-    crossScalaVersions := scalaVersion.value :: "2.11.0" :: Nil,
+    crossScalaVersions := scalaVersion.value :: "2.11.1" :: Nil,
     publishTo <<= version { (v: String) => _publishTo(v) },
     publishMavenStyle := true,
     resolvers ++= _resolvers,
@@ -72,10 +72,8 @@ object StackableControllerProjects extends Build {
     libraryDependencies ++= Seq(
       play.Play.autoImport.jdbc,
       "com.typesafe.play"  %% "play"                      % play.core.PlayVersion.current,
-      "org.scalikejdbc"    %% "scalikejdbc"               % "2.0.0-RC3",
-      // TODO scalikejdbc-play-plugin for Scala2.11, play2.3
-      // https://github.com/scalikejdbc/scalikejdbc-play-support/issues/4
-      "org.scalikejdbc"    %% "scalikejdbc-play-plugin"   % "2.2.0-RC",
+      "org.scalikejdbc"    %% "scalikejdbc"               % "2.0.0",
+      "org.scalikejdbc"    %% "scalikejdbc-play-plugin"   % "2.3.0",
       "org.slf4j"          %  "slf4j-simple"              % "[1.7,)"
     )
   ) dependsOn(core)
