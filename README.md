@@ -8,7 +8,7 @@ This module offers Action Composition Utilities to Play2.1, 2.2 applications
 
 This module targets the Scala version of Play2.2.x
 
-This module has been tested on Play2.2.1
+This module has been tested on Play2.3.0
 
 
 ## Motivation
@@ -192,8 +192,10 @@ As an alternative, this module offers Composable Action composition using the po
 Add a dependency declaration into your Build.scala or build.sbt file:
 
 ```scala
-libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.3.0"
+libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.4.0"
 ```
+
+for Play2.2.x, use 0.3.0
 
 ## ExecutionContext
 
