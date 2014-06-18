@@ -1,12 +1,12 @@
 ## Play2 Stackable Action Composition
 
-This module offers Action Composition Utilities to Play2.1, 2.2 applications
+This module offers Action Composition Utilities to Play2.1, 2.2, 2.3 applications
 
 
 ## Target
 
 
-This module targets the Scala version of Play2.2.x
+This module targets the Scala version of Play2.x
 
 This module has been tested on Play2.3.0
 
