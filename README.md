@@ -19,7 +19,7 @@ For example, imagine that we want automatic DB transaction management, auth, and
 
 
 ```scala
-def TxAction(f: DBSession => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = {
+def TxAction(f: DBSession => Request[AnyContent] => Future[Result]): Action[AnyContent] = {
   Action { request =>
     DB localTx { session =>
       f(session)(request)
@@ -27,7 +27,7 @@ def TxAction(f: DBSession => Request[AnyContent] => Future[SimpleResult]): Actio
   }
 }
 
-def AuthAction(authority: Authority)(f: User => DBSession => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = {
+def AuthAction(authority: Authority)(f: User => DBSession => Request[AnyContent] => Future[Result]): Action[AnyContent] = {
   TxAction { session => request =>
     val user: Either[Result, User] = authorized(authority)(request)
     user.right.map(u => f(u)(session)(request)).merge
@@ -35,7 +35,7 @@ def AuthAction(authority: Authority)(f: User => DBSession => Request[AnyContent]
 }
 
 type Template = Html => Html
-def PjaxAction(authority: Authority)(f: Template => User => DBSession => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = {
+def PjaxAction(authority: Authority)(f: Template => User => DBSession => Request[AnyContent] => Future[Result]): Action[AnyContent] = {
   AuthAction(authority) { user => session => request =>
     val template = if (req.headers.keys("X-Pjax")) views.html.pjaxTemplate.apply else views.html.fullTemplate.apply
     f(template)(user)(session)(request)
@@ -79,7 +79,7 @@ As an alternative, this module offers Composable Action composition using the po
       case object AuthKey extends RequestAttributeKey[User]
       case object AuthorityKey extends RequestAttributeKey[Authority]
 
-      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
         (for {
           authority <- req.get(AuthorityKey).toRight(authorizationFailed(req)).right
           user      <- authorized(authority)(req).right
@@ -97,7 +97,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       case object DBSessionKey extends RequestAttributeKey[DB]
 
-      abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
+      abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
         val db = DB.connect()
         db.begin()
         super.proceed(req.set(DBSessionKey, db))(f)
@@ -141,7 +141,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       case object TemplateKey extends RequestAttributeKey[Template]
 
-      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
         val template = if (req.headers.keys("X-Pjax")) views.html.pjaxTemplate else views.html.fullTemplate
         super.proceed(req.set(TemplateKey, template))(f)
       }
@@ -210,15 +210,13 @@ So, users of your StackElement can customize `ExecutionContext`.
 
       private case object FooKey extends RequestAttributeKey[Foo]
 
-      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Result): Result = {
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
         val ctx: ExecutionContext = StackActionExecutionContext(req)
         val future: Future[Foo] = getFooAsynchronously(ctx)
-        Async {
-          future map { 
-            foo => super.proceed(req.set(FooKey, foo))(f)
-          } recover {
-            _ => super.proceed(req)(f)
-          }
+        future flatMap { 
+          foo => super.proceed(req.set(FooKey, foo))(f)
+        } recoverWith {
+          _ => super.proceed(req)(f)
         }
       }
 
