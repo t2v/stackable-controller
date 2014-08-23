@@ -55,7 +55,7 @@ So far so good, but what if we need a new action that does both DB transaction m
 We have to create another PjaxAction.
 
 ```scala
-def PjaxAction(f: Template => DBSession => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = {
+def PjaxAction(f: Template => DBSession => Request[AnyContent] => Future[Result]): Action[AnyContent] = {
   TxAction { session => request =>
     val template = if (req.headers.keys("X-Pjax")) html.pjaxTemplate.apply else views.html.fullTemplate.apply
     f(template)(session)(request)

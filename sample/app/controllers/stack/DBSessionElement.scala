@@ -1,6 +1,6 @@
 package controllers.stack
 
-import play.api.mvc.{SimpleResult, Result, Controller}
+import play.api.mvc.{Result, Controller}
 import scalikejdbc._
 import jp.t2v.lab.play2.stackc.{RequestWithAttributes, RequestAttributeKey, StackableController}
 import scala.concurrent.Future
@@ -10,7 +10,7 @@ trait DBSessionElement extends StackableController {
 
   case object DBSessionKey extends RequestAttributeKey[(DB, DBSession)]
 
-  override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[SimpleResult]): Future[SimpleResult] = {
+  override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
     val db = DB.connect()
     val tx = db.newTx
     tx.begin()
