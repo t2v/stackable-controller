@@ -9,9 +9,9 @@ import scala.util.control.{NonFatal, ControlThrowable}
 trait StackableController {
     self: Controller =>
 
-  final class StackActionBuilder(params: (RequestAttributeKey[_], Any)*) extends ActionBuilder[RequestWithAttributes] {
+  final class StackActionBuilder(params: Attribute[_]*) extends ActionBuilder[RequestWithAttributes] {
     def invokeBlock[A](req: Request[A], block: (RequestWithAttributes[A]) => Future[Result]): Future[Result] = {
-      val request = new RequestWithAttributes(req, new TrieMap[RequestAttributeKey[_], Any] ++= params)
+      val request = new RequestWithAttributes(req, new TrieMap[RequestAttributeKey[_], Any] ++= params.map(_.toTuple))
       try {
         cleanup(request, proceed(request)(block))(StackActionExecutionContext(request))
       } catch {
@@ -21,12 +21,12 @@ trait StackableController {
     }
   }
 
-  final def AsyncStack[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Future[Result]): Action[A] = new StackActionBuilder(params: _*).async(p)(f)
-  final def AsyncStack(params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[AnyContent] => Future[Result]): Action[AnyContent] = new StackActionBuilder(params: _*).async(f)
+  final def AsyncStack[A](p: BodyParser[A], params: Attribute[_]*)(f: RequestWithAttributes[A] => Future[Result]): Action[A] = new StackActionBuilder(params: _*).async(p)(f)
+  final def AsyncStack(params: Attribute[_]*)(f: RequestWithAttributes[AnyContent] => Future[Result]): Action[AnyContent] = new StackActionBuilder(params: _*).async(f)
   final def AsyncStack(f: RequestWithAttributes[AnyContent] => Future[Result]): Action[AnyContent] = new StackActionBuilder().async(f)
 
-  final def StackAction[A](p: BodyParser[A], params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[A] => Result): Action[A] = new StackActionBuilder(params: _*).apply(p)(f)
-  final def StackAction(params: (RequestAttributeKey[_], Any)*)(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = new StackActionBuilder(params: _*).apply(f)
+  final def StackAction[A](p: BodyParser[A], params: Attribute[_]*)(f: RequestWithAttributes[A] => Result): Action[A] = new StackActionBuilder(params: _*).apply(p)(f)
+  final def StackAction(params: Attribute[_]*)(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = new StackActionBuilder(params: _*).apply(f)
   final def StackAction(f: RequestWithAttributes[AnyContent] => Result): Action[AnyContent] = new StackActionBuilder().apply(f)
 
   def proceed[A](request: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = f(request)
@@ -47,16 +47,22 @@ trait StackableController {
 
 }
 
-trait RequestAttributeKey[A]
+
+trait RequestAttributeKey[A] {
+
+  def ->(value: A): Attribute[A] = Attribute(this, value)
+
+}
+
+case class Attribute[A](key: RequestAttributeKey[A], value: A) {
+
+  def toTuple: (RequestAttributeKey[A], A) = (key, value)
+
+}
 
 class RequestWithAttributes[A](underlying: Request[A], attributes: TrieMap[RequestAttributeKey[_], Any]) extends WrappedRequest[A](underlying) {
 
-  def get[B](key: RequestAttributeKey[B]): Option[B] =
-    attributes.get(key).flatMap { item =>
-      try Some(item.asInstanceOf[B]) catch {
-        case _: ClassCastException => None
-      }
-    }
+  def get[B](key: RequestAttributeKey[B]): Option[B] = attributes.get(key).asInstanceOf[Option[B]]
 
   /** side effect! */
   def set[B](key: RequestAttributeKey[B], value: B): RequestWithAttributes[A] = {
