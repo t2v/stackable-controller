@@ -1,4 +1,5 @@
 ## Play2 Stackable Action Composition
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/t2v/stackable-controller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 This module offers Action Composition Utilities to Play2.1, 2.2, 2.3 applications
 
