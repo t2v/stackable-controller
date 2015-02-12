@@ -21,7 +21,8 @@ For example, imagine that we want automatic DB transaction management, auth, and
 
 ```scala
 def TxAction(f: DBSession => Request[AnyContent] => Future[Result]): Action[AnyContent] = {
-  Action { request =>
+  Action.async { request =>
+    import TxBoundary.Future._
     DB localTx { session =>
       f(session)(request)
     }
@@ -96,40 +97,16 @@ As an alternative, this module offers Composable Action composition using the po
     trait DBSessionElement extends StackableController {
         self: Controller =>
 
-      case object DBSessionKey extends RequestAttributeKey[DB]
+      case object DBSessionKey extends RequestAttributeKey[DBSession]
 
       abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
-        val db = DB.connect()
-        db.begin()
-        super.proceed(req.set(DBSessionKey, db))(f)
-      }
-
-      override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
-        try {
-          req.get(DBSessionKey).map { db =>
-            try {
-              db.commit()
-            } finally {
-              db.close()
-            }
-          }
-        } finally {
-          super.cleanupOnSucceeded(req)
+        import TxBoundary.Future._
+        DB.localTx { session =>
+          super.proceed(req.set(DBSessionKey, session))(f)
         }
       }
 
-      override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Throwable): Unit = {
-        try {
-          req.get(DBSessionKey).map { db =>
-            db.rollbackIfActive()
-            db.close()
-          }
-        } finally {
-          super.cleanupOnFailed(req, e)
-        }
-      }
-
-      implicit def dbSession(implicit req: RequestWithAttributes[_]): DBSession = req.get(DBSessionKey).get.withinTxSession() // throw
+      implicit def dbSession(implicit req: RequestWithAttributes[_]): DBSession = req.get(DBSessionKey).get
 
     }
     ```
