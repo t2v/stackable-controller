@@ -99,7 +99,7 @@ As an alternative, this module offers Composable Action composition using the po
 
       case object DBSessionKey extends RequestAttributeKey[DBSession]
 
-      abstract override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
+      override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
         import TxBoundary.Future._
         DB.localTx { session =>
           super.proceed(req.set(DBSessionKey, session))(f)
