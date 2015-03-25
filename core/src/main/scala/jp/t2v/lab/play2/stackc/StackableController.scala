@@ -15,7 +15,7 @@ trait StackableController {
       try {
         cleanup(request, proceed(request)(block))(StackActionExecutionContext(request))
       } catch {
-        case e: ControlThrowable => cleanupOnSucceeded(request); throw e
+        case e: ControlThrowable => cleanupOnSucceeded(request, None); throw e
         case NonFatal(e) => cleanupOnFailed(request, e); throw e
       }
     }
@@ -31,12 +31,14 @@ trait StackableController {
 
   def proceed[A](request: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = f(request)
 
+  def cleanupOnSucceeded[A](request: RequestWithAttributes[A], result: Option[Result]): Unit = cleanupOnSucceeded(request)
+
   def cleanupOnSucceeded[A](request: RequestWithAttributes[A]): Unit = ()
 
   def cleanupOnFailed[A](request: RequestWithAttributes[A], e: Throwable): Unit = ()
 
   private def cleanup[A](request: RequestWithAttributes[A], result: Future[Result])(implicit ctx: ExecutionContext): Future[Result] = result andThen {
-    case Success(p) => cleanupOnSucceeded(request)
+    case Success(p) => cleanupOnSucceeded(request, Some(p))
     case Failure(e) => cleanupOnFailed(request, e)
   }
 
