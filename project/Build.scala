@@ -14,7 +14,7 @@ object StackableControllerProjects extends Build {
   }
 
   lazy val _resolvers = Seq(
-    "typesafe releases" at "http://repo.typesafe.com/typesafe/releases",
+    "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
     "sonatype releases" at "http://oss.sonatype.org/content/repositories/releases"
   )
 
@@ -65,15 +65,16 @@ object StackableControllerProjects extends Build {
     pomExtra := _pomExtra
   )
 
-  lazy val sample = Project("sample", file("sample")).enablePlugins(play.PlayScala).settings(
+  lazy val sample = Project("sample", file("sample")).enablePlugins(play.sbt.PlayScala).settings(
     version := _version,
     scalaVersion := "2.10.4",
     resolvers ++= _resolvers,
     libraryDependencies ++= Seq(
-      play.Play.autoImport.jdbc,
+      play.sbt.Play.autoImport.jdbc,
+      play.sbt.Play.autoImport.specs2 % "test",
       "com.typesafe.play"  %% "play"                      % play.core.PlayVersion.current,
       "org.scalikejdbc"    %% "scalikejdbc"               % "2.0.0",
-      "org.scalikejdbc"    %% "scalikejdbc-play-plugin"   % "2.3.0",
+      "org.scalikejdbc"    %% "scalikejdbc-play-plugin"   % "2.3.0", // TODO scalikejdbc-play-plugin for play2.4
       "org.slf4j"          %  "slf4j-simple"              % "[1.7,)"
     )
   ) dependsOn(core)

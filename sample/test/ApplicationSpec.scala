@@ -16,7 +16,7 @@ class ApplicationSpec extends Specification {
     
     "send 404 on a bad request" in {
       running(FakeApplication()) {
-        route(FakeRequest(GET, "/boum")) must beNone        
+        route(FakeRequest(GET, "/boum")) must beSome.which (status(_) == NOT_FOUND)
       }
     }
     
