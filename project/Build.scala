@@ -50,7 +50,7 @@ object StackableControllerProjects extends Build {
     name := "stackable-controller",
     version := _version,
     scalaVersion := "2.11.6",
-    crossScalaVersions := scalaVersion.value :: "2.10.5" :: Nil,
+    crossScalaVersions := "2.11.6" :: "2.10.5" :: Nil,
     publishTo <<= version { (v: String) => _publishTo(v) },
     publishMavenStyle := true,
     resolvers ++= _resolvers,
