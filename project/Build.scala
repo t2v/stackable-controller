@@ -73,9 +73,9 @@ object StackableControllerProjects extends Build {
       play.sbt.Play.autoImport.jdbc,
       play.sbt.Play.autoImport.specs2 % "test",
       "com.typesafe.play"  %% "play"                      % play.core.PlayVersion.current,
-      "org.scalikejdbc"    %% "scalikejdbc"               % "2.0.0",
-      "org.scalikejdbc"    %% "scalikejdbc-config"        % "2.0.0",
-      "org.scalikejdbc"    %% "scalikejdbc-play-plugin"   % "2.3.0", // TODO scalikejdbc-play-plugin for play2.4
+      "org.scalikejdbc"    %% "scalikejdbc"               % "2.2.7",
+      "org.scalikejdbc"    %% "scalikejdbc-config"        % "2.2.7",
+      "org.scalikejdbc" %% "scalikejdbc-play-initializer" % "2.4.0",
       "org.slf4j"          %  "slf4j-simple"              % "[1.7,)"
     )
   ) dependsOn(core)
