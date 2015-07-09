@@ -4,41 +4,20 @@ import play.api.mvc.{Result, Controller}
 import scalikejdbc._
 import jp.t2v.lab.play2.stackc.{RequestWithAttributes, RequestAttributeKey, StackableController}
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait DBSessionElement extends StackableController {
     self: Controller =>
 
-  case object DBSessionKey extends RequestAttributeKey[(DB, DBSession)]
+  case object DBSessionKey extends RequestAttributeKey[DBSession]
 
   override def proceed[A](req: RequestWithAttributes[A])(f: RequestWithAttributes[A] => Future[Result]): Future[Result] = {
-    val db = DB.connect()
-    val tx = db.newTx
-    tx.begin()
-    super.proceed(req.set(DBSessionKey, (db, db.withinTxSession())))(f)
-  }
-
-  override def cleanupOnSucceeded[A](req: RequestWithAttributes[A]): Unit = {
-    try {
-      req.get(DBSessionKey).map { case (db, session) =>
-        db.currentTx.commit()
-        session.close()
-      }
-    } finally {
-      super.cleanupOnSucceeded(req)
+    import TxBoundary.Future._
+    DB.localTx { session =>
+      super.proceed(req.set(DBSessionKey, session))(f)
     }
   }
 
-  override def cleanupOnFailed[A](req: RequestWithAttributes[A], e: Throwable): Unit = {
-    try {
-      req.get(DBSessionKey).map { case (db, session) =>
-        db.currentTx.rollback()
-        session.close()
-      }
-    } finally {
-      super.cleanupOnFailed(req, e)
-    }
-  }
-
-  implicit def dbSession[A](implicit req: RequestWithAttributes[A]): DBSession = req.get(DBSessionKey).get._2 // throw
+  implicit def dbSession[A](implicit req: RequestWithAttributes[A]): DBSession = req.get(DBSessionKey).get // throw
 
 }

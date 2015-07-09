@@ -5,5 +5,9 @@
 # Home page
 GET     /                           controllers.Application.index
 
+GET     /messages                   controllers.Application.messages
+GET     /messages/:id               controllers.Application.editMessage(id: Int)
+
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
