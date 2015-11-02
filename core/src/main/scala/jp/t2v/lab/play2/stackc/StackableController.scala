@@ -54,6 +54,8 @@ trait RequestAttributeKey[A] {
 
   def ->(value: A): Attribute[A] = Attribute(this, value)
 
+  def →(value: A): Attribute[A] = Attribute(this, value)
+
 }
 
 case class Attribute[A](key: RequestAttributeKey[A], value: A) {
