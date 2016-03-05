@@ -49,8 +49,8 @@ object StackableControllerProjects extends Build {
     organization := _organization,
     name := "stackable-controller",
     version := _version,
-    scalaVersion := "2.11.6",
-    crossScalaVersions := "2.11.6" :: "2.10.5" :: Nil,
+    scalaVersion := "2.11.7",
+    crossScalaVersions := "2.11.7" :: "2.10.6" :: Nil,
     publishTo <<= version { (v: String) => _publishTo(v) },
     publishMavenStyle := true,
     resolvers ++= _resolvers,
@@ -67,7 +67,7 @@ object StackableControllerProjects extends Build {
 
   lazy val sample = Project("sample", file("sample")).enablePlugins(play.sbt.PlayScala).settings(
     version := _version,
-    scalaVersion := "2.11.6",
+    scalaVersion := "2.11.7",
     resolvers ++= _resolvers,
     libraryDependencies ++= Seq(
       play.sbt.Play.autoImport.jdbc,
@@ -81,7 +81,7 @@ object StackableControllerProjects extends Build {
   ) dependsOn(core)
 
   lazy val root = Project(id = "root", base = file(".")).settings(
-    scalaVersion := "2.11.6"
+    scalaVersion := "2.11.7"
   ).aggregate(core, sample) 
 
 }
