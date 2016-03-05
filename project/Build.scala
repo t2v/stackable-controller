@@ -1,5 +1,7 @@
 import sbt._
 import Keys._
+import play.sbt.routes.RoutesKeys.routesGenerator
+import play.routes.compiler.StaticRoutesGenerator
 
 object StackableControllerProjects extends Build {
 
@@ -42,6 +44,8 @@ object StackableControllerProjects extends Build {
     </developers>
   }
 
+  val Scala211 = "2.11.7"
+
   lazy val core = Project(
     id = "core", 
     base = file("core")
@@ -49,8 +53,8 @@ object StackableControllerProjects extends Build {
     organization := _organization,
     name := "stackable-controller",
     version := _version,
-    scalaVersion := "2.11.6",
-    crossScalaVersions := "2.11.6" :: "2.10.5" :: Nil,
+    scalaVersion := Scala211,
+    crossScalaVersions := Scala211 :: Nil,
     publishTo <<= version { (v: String) => _publishTo(v) },
     publishMavenStyle := true,
     resolvers ++= _resolvers,
@@ -67,21 +71,22 @@ object StackableControllerProjects extends Build {
 
   lazy val sample = Project("sample", file("sample")).enablePlugins(play.sbt.PlayScala).settings(
     version := _version,
-    scalaVersion := "2.11.6",
+    scalaVersion := Scala211,
     resolvers ++= _resolvers,
+    routesGenerator := StaticRoutesGenerator,
     libraryDependencies ++= Seq(
       play.sbt.Play.autoImport.jdbc,
       play.sbt.Play.autoImport.specs2 % "test",
       "com.typesafe.play"  %% "play"                         % play.core.PlayVersion.current,
-      "org.scalikejdbc"    %% "scalikejdbc"                  % "2.2.7",
-      "org.scalikejdbc"    %% "scalikejdbc-config"           % "2.2.7",
-      "org.scalikejdbc"    %% "scalikejdbc-play-initializer" % "2.4.0",
+      "org.scalikejdbc"    %% "scalikejdbc"                  % "2.3.5",
+      "org.scalikejdbc"    %% "scalikejdbc-config"           % "2.3.5",
+      "org.scalikejdbc"    %% "scalikejdbc-play-initializer" % "2.5.0",
       "org.slf4j"          %  "slf4j-simple"                 % "[1.7,)"
     )
   ) dependsOn(core)
 
   lazy val root = Project(id = "root", base = file(".")).settings(
-    scalaVersion := "2.11.6"
+    scalaVersion := Scala211
   ).aggregate(core, sample) 
 
 }
