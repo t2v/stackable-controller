@@ -1,7 +1,7 @@
 ## Play2 Stackable Action Composition
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/t2v/stackable-controller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-This module offers Action Composition Utilities to Play2.1, 2.2, 2.3, 2.4 applications
+This module offers Action Composition Utilities to Play2.1, 2.2, 2.3, 2.4, 2.5 applications
 
 
 ## Target
@@ -9,7 +9,7 @@ This module offers Action Composition Utilities to Play2.1, 2.2, 2.3, 2.4 applic
 
 This module targets the Scala version of Play2.x
 
-This module has been tested on Play2.4.0
+This module has been tested on Play2.5.0
 
 
 ## Motivation
@@ -170,11 +170,12 @@ As an alternative, this module offers Composable Action composition using the po
 Add a dependency declaration into your Build.scala or build.sbt file:
 
 ```scala
-libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.5.0"
+libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.6.0"
 ```
 
 - for Play2.2.x, use 0.3.0
 - for Play2.3.x, use 0.4.1
+- for Play2.4.x, use 0.5.1
 
 ## ExecutionContext
 
