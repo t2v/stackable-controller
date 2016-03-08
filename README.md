@@ -170,7 +170,7 @@ As an alternative, this module offers Composable Action composition using the po
 Add a dependency declaration into your Build.scala or build.sbt file:
 
 ```scala
-libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.5.0"
+libraryDependencies += "jp.t2v" %% "stackable-controller" % "0.5.1"
 ```
 
 - for Play2.2.x, use 0.3.0
