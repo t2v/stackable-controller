@@ -32,8 +32,8 @@ object StackableControllerProjects extends Build {
       </license>
     </licenses>
     <scm>
-      <url>git@github.com:stackable-controller</url>
-      <connection>scm:git:git@github.com:stackable-controller</connection>
+      <url>git@github.com:t2v/stackable-controller</url>
+      <connection>scm:git:git@github.com:t2v/stackable-controller</connection>
     </scm>
     <developers>
       <developer>
